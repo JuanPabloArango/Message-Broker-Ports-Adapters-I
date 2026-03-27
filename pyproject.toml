@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "app"
+version = "1.0.0"
+description = "Taller para aprender EDA"
+authors = ["Juan Pablo Arango"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+sqlalchemy = "^2.0.48"
+python-dotenv = "^1.2.2"
+google-cloud-pubsub = "^2.36.0"
+
+
+[tool.poetry.group.development.dependencies]
+pytest = "^9.0.2"
+pytest-cov = "^7.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
