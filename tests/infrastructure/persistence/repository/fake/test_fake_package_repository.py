@@ -53,7 +53,7 @@ class TestFakePackageRepositoryAdapter:
 
         assert isinstance(package, Package), "Valida que la entidad obtenida sea adecuada."
 
-        assert package.driver_id == ID("42"), "Valida que el estado sea el adecuado."
+        assert package.driver_id == ID(value = "4"), "Valida que el estado sea el adecuado."
         assert package.status == PackageStatus.ASSIGNED, "Valida que el estado sea el adecuado."
 
         package = repository.get(package_id = "1")
