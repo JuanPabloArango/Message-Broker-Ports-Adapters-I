@@ -13,4 +13,28 @@ class NotAValidAttribute(ApplicationException):
     dominio."""
 
     ...
+
+
+class SenderNotFound(ApplicationException):
+    """Clase que define un error en el cual un paquete no puede ser creado
+    debido a la no existencia del Sender."""
+
+    ...
     
+
+class PackageNotFound(ApplicationException):
+    """Clase que define un error en el cual un paquete no ha sido hallado."""
+
+    ...
+
+
+class DriverNotFound(ApplicationException):
+    """Clase que define un error en el cual un conductor no ha sido hallado."""
+
+    ...
+
+
+class NotCurrenltyAvailableDrivers(ApplicationException):
+    """Clase que define un error de la imposibilidad de asignación de un paquete."""
+
+    ...

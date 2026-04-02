@@ -7,11 +7,12 @@ from typing import List
 # Librerías Internas.
 from app.domain.entities.sender import Sender
 
+from app.application.dtos.sender import SenderDTO
 from app.application.ports.persistence.uow import UnitOfWorkPort
 from app.application.queries.list_senders import ListSendersQuery
 
 
-class ListSenderssHandler:
+class ListSendersHandler:
     """Clase que encapsula las lógicas del Query Handler."""
 
     def __init__(self, unit_of_work: UnitOfWorkPort) -> None:
@@ -39,4 +40,4 @@ class ListSenderssHandler:
         
         with self._unit_of_work as uow:
             senders = uow.sender_repository.list_all(criteria = query.criteria)
-            return senders
+            return [SenderDTO.from_entity(sender) for sender in senders]

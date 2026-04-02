@@ -10,6 +10,9 @@ from app.domain.entities.sender import Sender
 from app.application.ports.persistence.uow import UnitOfWorkPort
 from app.application.queries.get_sender_by_id import GetSenderQuery
 
+from app.application.dtos.sender import SenderDTO
+from app.application.exceptions import SenderNotFound
+
 
 class GetSenderHandler:
     """Clase que encapsula las lógicas del Query Handler."""
@@ -39,4 +42,6 @@ class GetSenderHandler:
         
         with self._unit_of_work as uow:
             sender = uow.sender_repository.get(sender_id = query.sender_id)
-            return sender
+            if not sender:
+                raise SenderNotFound(f"El Sender con ID {query.sender_id} no existe.")
+            return SenderDTO.from_entity(sender)

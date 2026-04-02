@@ -7,8 +7,12 @@ from typing import Union
 # Librerías Internas.
 from app.domain.entities.package import Package
 
+from app.application.dtos.package import PackageDTO
+
 from app.application.ports.persistence.uow import UnitOfWorkPort
 from app.application.queries.get_package_by_id import GetPackageQuery
+
+from app.application.exceptions import PackageNotFound
 
 
 class GetPackageHandler:
@@ -39,4 +43,6 @@ class GetPackageHandler:
         
         with self._unit_of_work as uow:
             package = uow.package_repository.get(package_id = query.package_id)
-            return package
+            if not package:
+                raise PackageNotFound(f"El paquete con ID {query.package_id} no existe.")
+            return PackageDTO.from_entity(package)

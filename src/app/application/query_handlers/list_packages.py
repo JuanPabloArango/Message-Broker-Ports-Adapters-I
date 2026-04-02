@@ -7,6 +7,8 @@ from typing import List
 # Librerías Internas.
 from app.domain.entities.package import Package
 
+from app.application.dtos.package import PackageDTO
+
 from app.application.ports.persistence.uow import UnitOfWorkPort
 from app.application.queries.list_packages import ListPackagesQuery
 
@@ -39,4 +41,4 @@ class ListPackagesHandler:
         
         with self._unit_of_work as uow:
             packages = uow.package_repository.list_all(criteria = query.criteria)
-            return packages
+            return [PackageDTO.from_entity(package) for package in packages]

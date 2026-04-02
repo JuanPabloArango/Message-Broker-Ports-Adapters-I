@@ -60,3 +60,14 @@ class DriverRepositoryPort(ABC):
             Entidades de dominio que cumplen con los criterios de búsqueda."""
         
         raise NotImplementedError("Si tu clase es una realización de 'DriverRepositoryPort', debes implementar el método 'list_all'.")
+
+    @abstractmethod
+    def list_available(self) -> List[Driver]:
+        """Método que permite listar todas las entidades disponibles.
+        
+        Returns:
+        ----------
+        List[Driver].
+            Entidades de dominio."""
+        
+        raise NotImplementedError("Si tu clase es una realización de 'DriverRepositoryPort', debes implementar el método 'list_available'.")

@@ -7,6 +7,8 @@ from typing import List
 # Librerías Internas.
 from app.domain.entities.driver import Driver
 
+from app.application.dtos.driver import DriverDTO
+
 from app.application.ports.persistence.uow import UnitOfWorkPort
 from app.application.queries.list_drivers import ListDriversQuery
 
@@ -39,4 +41,4 @@ class ListDriversHandler:
         
         with self._unit_of_work as uow:
             drivers = uow.driver_repository.list_all(criteria = query.criteria)
-            return drivers
+            return [DriverDTO.from_entity(driver) for driver in drivers]

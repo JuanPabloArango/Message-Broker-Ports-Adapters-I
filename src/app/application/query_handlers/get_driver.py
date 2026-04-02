@@ -7,8 +7,12 @@ from typing import Union
 # Librerías Internas.
 from app.domain.entities.driver import Driver
 
+from app.application.dtos.driver import DriverDTO
+
 from app.application.ports.persistence.uow import UnitOfWorkPort
 from app.application.queries.get_driver_by_id import GetDriverQuery
+
+from app.application.exceptions import DriverNotFound
 
 
 class GetDriverHandler:
@@ -40,4 +44,6 @@ class GetDriverHandler:
         with self._unit_of_work as uow:
 
             driver = uow.driver_repository.get(driver_id = query.driver_id)
-            return driver
+            if not driver:
+                raise DriverNotFound(f"El conductor con ID {query.driver_id} no existe.")
+            return DriverDTO.from_entity(driver)
