@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Union, Callable
 
 # Librerías Internas.
 from app.domain.entities.driver import Driver
+from app.domain.value_objects.driver_status import DriverStatus
 
 from app.application.ports.persistence.criteria import Criteria, Operator
 from app.application.ports.persistence.repositories.driver_repository import DriverRepositoryPort
@@ -95,3 +96,14 @@ class FakeDriverRepositoryAdapter(DriverRepositoryPort):
                 
             results = results[pagination.offset: pagination.offset + pagination.limit]
         return results
+    
+    def list_available(self) -> List[Driver]:
+        """Método que permite listar todas las entidades disponibles.
+        
+        Returns:
+        ----------
+        List[Driver].
+            Entidades de dominio."""
+
+        available_drivers = [driver for driver in self._base if driver.status == DriverStatus.AVAILABLE]
+        return available_drivers

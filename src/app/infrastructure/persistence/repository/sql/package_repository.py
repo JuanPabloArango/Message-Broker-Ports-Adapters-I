@@ -4,7 +4,7 @@ en definir el contrato del repositorio para la entidad Package."""
 # Librerías Externas.
 from typing import Any, List, Dict, Callable
 
-from sqlalchemy import select
+from sqlalchemy import Column, select
 from sqlalchemy.orm import Session
 
 # Librerías Internas.
@@ -28,7 +28,16 @@ class SQLPackageRepositoryAdapter(PackageRepositoryPort):
         Operator.GTE: lambda col, val: col >= val,
         Operator.LT: lambda col, val: col < val,
         Operator.LTE: lambda col, val: col <= val,
-        Operator.IN: lambda col, val: col.in_(val.split(","))
+        Operator.IN: lambda col, val: col.in_(val)
+    }
+
+    COLUMN_MAP: Dict[str, Column] = {
+        "id": packages_table.c.id,
+        "sender_id": packages_table.c.sender_id,
+        "driver_id": packages_table.c.driver_id,
+        "status": packages_table.c.status,
+        "created_at": packages_table.c.created_at,
+        "updated_at": packages_table.c.updated_at
     }
 
     def __init__(self, session: Session) -> None:
@@ -85,18 +94,17 @@ class SQLPackageRepositoryAdapter(PackageRepositoryPort):
         q = self._session.query(Package)
         for filter in criteria.filters:
 
-            attr = f"_{filter.field}"
-            if not hasattr(Package, attr):
+            column = self.COLUMN_MAP.get(filter.field)
+            if column is None:
                 raise NotAValidAttribute(f"El atributo {filter.field} no es un campo de filtrado válido.")
             
-            column = getattr(Package, attr)
             condition = self.OPERATOR_MAP[filter.operator](column, filter.value)
             q = q.filter(condition)
 
         if criteria.pagination:
             pagination = criteria.pagination
-            if pagination.order_by and hasattr(Package, f"_{pagination.order_by}"):
-                ordering_columns = getattr(Package, f"_{pagination.order_by}")
+            if pagination.order_by and self.COLUMN_MAP.get(pagination.order_by) is not None:
+                ordering_columns = self.COLUMN_MAP.get(pagination.order_by)
                 ordering_direction = ordering_columns.asc() if pagination.order_dir == "asc" else ordering_columns.desc()
 
                 q = q.order_by(ordering_direction)
@@ -114,7 +122,8 @@ class SQLPackageRepositoryAdapter(PackageRepositoryPort):
         List[Package].
             Entidades de dominio."""
         
-        stmt = select(Package).where(packages_table.c.status == "PENDING")
+        filter_column = self.COLUMN_MAP["status"]
+        stmt = select(Package).where(filter_column == "PENDING")
 
         packages = self._session.scalars(stmt).all()
         return packages

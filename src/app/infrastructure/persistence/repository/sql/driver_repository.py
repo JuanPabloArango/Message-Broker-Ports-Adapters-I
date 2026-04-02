@@ -2,9 +2,9 @@
 en definir el contrato del repositorio para la entidad Driver."""
 
 # Librerías Externas.
-from typing import Any, List, Dict, Callable
+from typing import Any, List, Dict, Callable, Optional
 
-from sqlalchemy import select
+from sqlalchemy import Column, select
 from sqlalchemy.orm import Session
 
 # Librerías Internas.
@@ -14,6 +14,8 @@ from app.application.ports.persistence.criteria import Operator, Criteria
 from app.application.ports.persistence.repositories.driver_repository import DriverRepositoryPort
 
 from app.application.exceptions import NotAValidAttribute
+
+from app.infrastructure.persistence.orm.tables.driver import drivers_table
 
 
 class SQLDriverRepositoryAdapter(DriverRepositoryPort):
@@ -27,6 +29,14 @@ class SQLDriverRepositoryAdapter(DriverRepositoryPort):
         Operator.LT: lambda col, val: col < val,
         Operator.LTE: lambda col, val: col <= val,
         Operator.IN: lambda col, val: col.in_(val)
+    }
+
+    COLUMN_MAP: Dict[str, Column] = {
+        "id": drivers_table.c.id,
+        "status": drivers_table.c.status,
+        "last_delivery": drivers_table.c.last_delivery,
+        "created_at": drivers_table.c.created_at,
+        "updated_at": drivers_table.c.updated_at
     }
 
     def __init__(self, session: Session) -> None:
@@ -67,12 +77,12 @@ class SQLDriverRepositoryAdapter(DriverRepositoryPort):
         
         self._session.add(driver)
 
-    def list_all(self, criteria: Criteria) -> List[Driver]:
+    def list_all(self, criteria: Optional[Criteria]) -> List[Driver]:
         """Método que permite listar todas las entidades persistidas.
 
         Args:
         ----------
-        criteria: Criteria.
+        criteria: Optional[Criteria].
             Criterios de búsqueda sobre todas las entidades.
         
         Returns:
@@ -83,11 +93,10 @@ class SQLDriverRepositoryAdapter(DriverRepositoryPort):
         q = self._session.query(Driver)
 
         for filter in criteria.filters:
-            attr = f"_{filter.field}"
-            if not hasattr(Driver, attr):
+            column = self.COLUMN_MAP.get(filter.field)
+            if column is None:
                 raise NotAValidAttribute(f"El atributo {filter.field} no es un campo de filtrado válido.")
             
-            column = getattr(Driver, attr)
             condition = self.OPERATOR_MAP[filter.operator](column, filter.value)
 
             q = q.filter(condition)
@@ -95,8 +104,8 @@ class SQLDriverRepositoryAdapter(DriverRepositoryPort):
         if criteria.pagination:
             pagination = criteria.pagination
 
-            if pagination.order_by and hasattr(Driver, f"_{pagination.order_by}"):
-                ordering_column = getattr(Driver, f"_{pagination.order_by}")
+            if pagination.order_by and self.COLUMN_MAP.get(pagination.order_by) is not None:
+                ordering_column = self.COLUMN_MAP.get(pagination.order_by)
                 ordering_direction = ordering_column.asc() if pagination.order_dir == "asc" else ordering_column.desc()
 
                 q = q.order_by(ordering_direction)
@@ -105,3 +114,15 @@ class SQLDriverRepositoryAdapter(DriverRepositoryPort):
         
         filtered_drivers = q.all()
         return filtered_drivers
+    
+    def list_available(self) -> List[Driver]:
+        """Método que permite listar todas las entidades disponibles.
+        
+        Returns:
+        ----------
+        List[Driver].
+            Entidades de dominio."""
+
+        filter_column = self.COLUMN_MAP["status"]
+        available_drivers = self._session.query(Driver).where(filter_column == "AVAILABLE").all()
+        return available_drivers

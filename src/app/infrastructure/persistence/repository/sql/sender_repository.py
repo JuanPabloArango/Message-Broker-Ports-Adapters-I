@@ -2,9 +2,9 @@
 en definir el contrato del repositorio para la entidad Driver."""
 
 # Librerías Externas.
-from typing import Any, Dict, List, Callable
+from typing import Any, Dict, List, Callable, Optional
 
-from sqlalchemy import select
+from sqlalchemy import Column
 from sqlalchemy.orm import Session
 
 # Librerías Internas.
@@ -14,6 +14,8 @@ from app.application.ports.persistence.criteria import Operator, Criteria
 from app.application.ports.persistence.repositories.sender_repository import SenderRepositoryPort
 
 from app.application.exceptions import NotAValidAttribute
+
+from app.infrastructure.persistence.orm.tables.sender import sender_table
 
 
 class SQLSenderRepositoryAdapter(SenderRepositoryPort):
@@ -26,7 +28,14 @@ class SQLSenderRepositoryAdapter(SenderRepositoryPort):
         Operator.GTE: lambda col, val: col >= val,
         Operator.LT: lambda col, val: col < val,
         Operator.LTE: lambda col, val: col <= val,
-        Operator.IN: lambda col, val: col.in_(val.split(","))
+        Operator.IN: lambda col, val: col.in_(val)
+    }
+
+    COLUMN_MAP: Dict[str, Column] = {
+        "id": sender_table.c.id,
+        "status": sender_table.c.status,
+        "created_at": sender_table.c.created_at,
+        "updated_at": sender_table.c.updated_at
     }
 
     def __init__(self, session: Session) -> None:
@@ -67,8 +76,13 @@ class SQLSenderRepositoryAdapter(SenderRepositoryPort):
         
         self._session.add(sender)
 
-    def list_all(self, criteria: Criteria) -> List[Sender]:
+    def list_all(self, criteria: Optional[Criteria]) -> List[Sender]:
         """Método que permite listar todas las entidades persistidas.
+
+        Args:
+        ----------
+        criteria: Optional[Criteria].
+            Criterios de búsqueda.
         
         Returns:
         ----------
@@ -76,25 +90,30 @@ class SQLSenderRepositoryAdapter(SenderRepositoryPort):
             Entidades de dominio."""
         
         q = self._session.query(Sender)
-        for filter in criteria.filters:
+        
+        if criteria:
+        
+            for filter in criteria.filters:
+                column = self.COLUMN_MAP.get(filter.field)
+                if column is None:
+                    raise NotAValidAttribute(f"El atributo {filter.field} no es un campo de filtrado válido.")
+                
+                condition = self.OPERATOR_MAP[filter.operator](column, filter.value)
+                q = q.filter(condition)
 
-            attr = f"_{filter.field}"
-            if not hasattr(Sender, attr):
-                raise NotAValidAttribute(f"El atributo {filter.field} no es un campo de filtrado válido.")
-            
-            column = getattr(Sender, attr)
-            condition = self.OPERATOR_MAP[filter.operator](column, filter.value)
-            q = q.filter(condition)
+            if criteria.pagination:
+                pagination = criteria.pagination
+                if pagination.order_by and self.COLUMN_MAP.get(pagination.order_by) is not None:
+                    ordering_columns = self.COLUMN_MAP.get(pagination.order_by)
+                    ordering_direction = ordering_columns.asc() if pagination.order_dir == "asc" else ordering_columns.desc()
 
-        if criteria.pagination:
-            pagination = criteria.pagination
-            if pagination.order_by and hasattr(Sender, f"_{pagination.order_by}"):
-                ordering_columns = getattr(Sender, f"_{pagination.order_by}")
-                ordering_direction = ordering_columns.asc() if pagination.order_dir == "asc" else ordering_columns.desc()
+                    q = q.order_by(ordering_direction)
 
-                q = q.order_by(ordering_direction)
+                q = q.offset(pagination.offset).limit(pagination.limit)
+        
+        else:
+            q = q.offset(0).limit(100)
 
-            q = q.offset(pagination.offset).limit(pagination.limit)
+        results = q.all()
+        return results
 
-        filterd_packages = q.all()
-        return filterd_packages
